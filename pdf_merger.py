@@ -1,7 +1,8 @@
 import streamlit as st
 from pypdf import PdfReader, PdfWriter
 from io import BytesIO
-
+from streamlit_pdf_viewer import pdf_viewer
+import base64
 def create_title_page(title_text):
     """
     Creates a title page PDF with the given text.
@@ -72,34 +73,48 @@ def merge_pdfs(pdf_files, title_text, title_dict, add_title_per_pdf=False):
    
 
 
+
 def main():
+    st.set_page_config(layout="wide")
     """
     Streamlit app main function that provides the user interface for uploading, merging,
     and downloading PDF files.
     """
     st.title("📄 PDF Merger App")
-    st.write("Upload multiple PDF files and merge them into one.")
+
     
-    uploaded_files = st.file_uploader("Upload PDFs", accept_multiple_files=True, type=["pdf"])
-    title_text = st.text_input("Enter Title Page Text (Optional)")
+    col1, col2 = st.columns([1, 2])
+    title_dict = {}
+    st.session_state.title_dict = title_dict
+    with col1:
+        st.write("Upload multiple PDF files and merge them into one.")
+        uploaded_files = st.file_uploader("Upload PDFs", accept_multiple_files=True, type=["pdf"])
+        st.session_state.title_text = st.text_input("Enter Title Page Text (Optional)")
     
-    add_title_per_pdf = st.checkbox("Add a title page for each PDF")
-    if uploaded_files:
-        st.write(f"Uploaded {len(uploaded_files)} PDF files.")
-        title_dict = {}
-        if add_title_per_pdf:
-            for pdf in uploaded_files:
-                title_dict[pdf.name] = st.text_input(f"Enter title for {pdf.name}", pdf.name)
-        if st.button("Merge PDFs"):
-            merged_pdf = merge_pdfs(uploaded_files, title_text, title_dict, add_title_per_pdf)
-            st.success("PDFs merged successfully!")
+        add_title_per_pdf = st.checkbox("Add a title page for each PDF")
+        if uploaded_files:
+            st.write(f"Uploaded {len(uploaded_files)} PDF files.")
             
-            st.download_button(
-                label="📥 Download Merged PDF",
-                data=merged_pdf,
-                file_name="merged_document.pdf",
-                mime="application/pdf"
-            )
+            if add_title_per_pdf:
+                for pdf in uploaded_files:
+                    title_dict[pdf.name] = st.text_input(f"Enter title for {pdf.name}", pdf.name)
+            if st.button("Merge PDFs"):
+                merged_pdf = merge_pdfs(uploaded_files, title_text, title_dict, add_title_per_pdf)
+                st.success("PDFs merged successfully!")
+            
+                st.download_button(
+                    label="📥 Download Merged PDF",
+                    data=merged_pdf,
+                    file_name="merged_document.pdf",
+                    mime="application/pdf"
+                )
+
+    with col2:
+        if uploaded_files and st.button("Preview Merge PDFs"):
+            st.write("Preview Merged PDF")
+            merged_pdf = merge_pdfs(uploaded_files, st.session_state.title_text, st.session_state.title_dict, add_title_per_pdf)
+            #display_pdf(merged_pdf)
+            pdf_viewer(merged_pdf.read(),  height=600, key="merged_pdf",  )
 
 if __name__ == "__main__":
     main()
