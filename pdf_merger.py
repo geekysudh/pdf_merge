@@ -99,7 +99,7 @@ def main():
                 for pdf in uploaded_files:
                     title_dict[pdf.name] = st.text_input(f"Enter title for {pdf.name}", pdf.name)
             if st.button("Merge PDFs"):
-                merged_pdf = merge_pdfs(uploaded_files, title_text, title_dict, add_title_per_pdf)
+                merged_pdf = merge_pdfs(uploaded_files, st.session_state.title_text, st.session_state.title_dict, add_title_per_pdf)
                 st.success("PDFs merged successfully!")
             
                 st.download_button(
