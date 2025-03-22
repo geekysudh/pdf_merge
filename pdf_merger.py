@@ -83,7 +83,7 @@ def main():
     st.title("📄 PDF Merger App")
 
     
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([3, 1])
     title_dict = {}
     st.session_state.title_dict = title_dict
     with col1:
@@ -110,8 +110,7 @@ def main():
                 )
 
     with col2:
-        if uploaded_files and st.button("Preview Merge PDFs"):
-            st.write("Preview Merged PDF")
+        if uploaded_files and st.button("Preview"):
             merged_pdf = merge_pdfs(uploaded_files, st.session_state.title_text, st.session_state.title_dict, add_title_per_pdf)
             #display_pdf(merged_pdf)
             pdf_viewer(merged_pdf.read(),  height=600, key="merged_pdf",  )
