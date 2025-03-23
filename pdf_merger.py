@@ -7,12 +7,12 @@ import base64
 
 class PDFFile:
     title = ""
-    order = 0
     uploadedFile = None
-    def __init__(self, uploadedFile, title:str, order:int):
+    def __init__(self, uploadedFile, title:str):
         self.uploadedFile = uploadedFile
         self.title = title
-        self.order = order
+    def __str__(self):
+        return self.title 
 
 class PDFFiles:
     files = []
@@ -21,43 +21,39 @@ class PDFFiles:
         self.files = []
     
     def add_file(self, pdf):
-        self.files.append(PDFFile(pdf, pdf.name, len(self.files)))
+        self.files.append(PDFFile(pdf, pdf.name))
     
     def get_files(self):
         return self.files
     
-    def sort_files(self):
-        files = []
-        for file in self.files:
-            files.append(file)
-        files.sort(key=lambda x: x.order)
-        return files
+    def contains(self, pdf):
+        return any(file.uploadedFile == pdf for file in self.files)
+
     def move_up(self, pdf_file):
         try:
-            sorted_files = self.sort_files()
-            index_of_file = sorted_files.index(pdf_file)
-            print(pdf_file.order)
+            print("Move up")
+            index_of_file = self.files.index(pdf_file)
+            print("Before " + str(self))
             if(index_of_file > 0):
-                current_order = sorted_files[index_of_file].order
-                sorted_files[index_of_file].order = sorted_files[index_of_file - 1].order
-                sorted_files[index_of_file - 1].order = current_order
-            print(pdf_file.order)
-            for val in self.files:
-                print(val.order , val.title) 
+                current_item = self.files[index_of_file]
+                self.files[index_of_file] = self.files[index_of_file - 1]
+                self.files[index_of_file - 1] = current_item    
+                print("MOved")
+            print("After "+str(self)) 
         except:
             print("Error")
        
     def move_down(self, pdf_file):
         try:
-            sorted_files = self.sort_files()
-            index_of_file = sorted_files.index(pdf_file)
-            if(index_of_file < len(sorted_files) - 1):
-                current_order = sorted_files[index_of_file].order
-                sorted_files[index_of_file].order = sorted_files[index_of_file + 1].order
-                sorted_files[index_of_file + 1].order = current_order
+            index_of_file = self.files.index(pdf_file)
+            if(index_of_file < len(self.files) - 1):
+                current_tem = self.files[index_of_file]
+                self.files[index_of_file] = self.files[index_of_file + 1]
+                self.files[index_of_file + 1] = current_tem
         except:
             print("Error")
-        
+    def __str__(self):
+        return str(self.files)       
 
 def create_title_page(title_text:str):
     """
@@ -108,7 +104,7 @@ def merge_pdfs(pdf_files, add_title_per_pdf=False):
         reader = PdfReader(title_pdf)
         writer.add_page(reader.pages[0])
     
-    for pdf in pdf_files.sort_files():
+    for pdf in pdf_files.get_files():
         if add_title_per_pdf:
             pdf_name = pdf.name if hasattr(pdf, 'name') else 'Untitled Document'
             custom_title = pdf.title
@@ -132,12 +128,21 @@ def merge_pdfs(pdf_files, add_title_per_pdf=False):
 
 def main():
     st.set_page_config(layout="wide")
+    st.markdown(
+    """
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <button class="btn btn-primary">Bootstrap Button</button>
+    """,
+    unsafe_allow_html=True
+)
+
+    
     """
     Streamlit app main function that provides the user interface for uploading, merging,
     and downloading PDF files.
     """
     st.title("📄 PDF Merger App")
-    st.session_state.pdf_files = PDFFiles()
     
     col1, col2 = st.columns([3, 1])
     title_dict = {}
@@ -145,44 +150,50 @@ def main():
     with col1:
         st.write("Upload multiple PDF files and merge them into one.")
         uploaded_files = st.file_uploader("Upload PDFs", accept_multiple_files=True, type=["pdf"],)
-        st.session_state.pdf_files = PDFFiles()
+        if "pdf_files" not in st.session_state:
+            st.session_state.pdf_files = PDFFiles()
         if uploaded_files:
             for pdf in uploaded_files:
-                st.session_state.pdf_files.add_file(pdf)
+                if st.session_state.pdf_files.contains(pdf) == False:
+                    st.session_state.pdf_files.add_file(pdf)
         st.session_state.pdf_files.title_text = st.text_input("Enter Title Page Text (Optional)")
-    
         add_title_per_pdf = st.checkbox("Add a title page for each PDF")
-        if uploaded_files:
-            st.write(f"Uploaded {len(uploaded_files)} PDF files.")
+        if st.session_state.pdf_files:
+            st.write(f"Uploaded {len(st.session_state.pdf_files.get_files())} PDF files.")
             
             if add_title_per_pdf:
-                for pdf in st.session_state.pdf_files.sort_files():
+                for i, pdf in enumerate(st.session_state.pdf_files.get_files()):
+                    print(str(i) + pdf.title)
                     cola, colb,colc = st.columns([12, 1,1])
                     with cola:
-                        pdf.title = st.text_input(f"Enter title for {pdf.title} {pdf.order}", pdf.title)
+                        pdf.title = st.text_input(f"Enter title for {pdf.title} ", pdf.title)
                     with colb:
                         if st.button(f"⬆️ Up", key=pdf.uploadedFile.name+'up'):   
                             st.session_state.pdf_files.move_up(pdf)
+                            st.rerun()
                     with colc:
                         if st.button(f"⬇️ Down" ,key=pdf.uploadedFile.name+'down'):
                             st.session_state.pdf_files.move_down(pdf)
+                            st.rerun()
                    
-            if st.button("Merge PDFs"):
-                merged_pdf = merge_pdfs(st.session_state.pdf_files,  add_title_per_pdf)
-                st.success("PDFs merged successfully!")
             
-                st.download_button(
-                    label="📥 Download Merged PDF",
-                    data=merged_pdf,
-                    file_name="merged_document.pdf",
-                    mime="application/pdf"
-                )
 
     with col2:
         if uploaded_files and st.button("Preview"):
             merged_pdf = merge_pdfs(st.session_state.pdf_files, add_title_per_pdf)
             #display_pdf(merged_pdf)
             pdf_viewer(merged_pdf.read(),  height=600, key="merged_pdf",  )
+        
+        if st.button("Merge PDFs"):
+            merged_pdf = merge_pdfs(st.session_state.pdf_files,  add_title_per_pdf)
+            st.success("PDFs merged successfully!")
+            file_name = st.session_state.pdf_files.title_text+".pdf" if st.session_state.pdf_files.title_text else "untitled document.pdf"
+            st.download_button(
+                label="📥 Download Merged PDF",
+                data=merged_pdf,
+                file_name= file_name,
+                mime="application/pdf"
+            )
 
 if __name__ == "__main__":
     main()
