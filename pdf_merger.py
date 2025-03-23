@@ -128,14 +128,7 @@ def merge_pdfs(pdf_files, add_title_per_pdf=False):
 
 def main():
     st.set_page_config(layout="wide")
-    st.markdown(
-    """
-    <link rel="stylesheet"
-          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-    <button class="btn btn-primary">Bootstrap Button</button>
-    """,
-    unsafe_allow_html=True
-)
+    
 
     
     """
